@@ -14,7 +14,7 @@ pub fn main() anyerror!void {
 }
 
 pub fn printIPFromJson(allocator: *std.mem.Allocator) !void {
-    const response = try zelda.getJson(IPResponse, .{ .allocator = allocator }, allocator, "https://api64.ipify.org/?format=json");
+    const response = try zelda.getAndParseResponse(IPResponse, .{ .allocator = allocator }, allocator, "https://api64.ipify.org/?format=json");
     defer std.json.parseFree(IPResponse, response, .{ .allocator = allocator });
 
     var stdout = std.io.getStdOut().writer();
@@ -23,7 +23,7 @@ pub fn printIPFromJson(allocator: *std.mem.Allocator) !void {
 }
 
 pub fn printIPFromRaw(allocator: *std.mem.Allocator) !void {
-    var response = try zelda.get(allocator, "https://api64.ipify.org/");
+    var response = try zelda.get(allocator, "http://api64.ipify.org/");
     defer response.deinit();
 
     var stdout = std.io.getStdOut().writer();

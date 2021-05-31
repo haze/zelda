@@ -48,6 +48,11 @@ pub const HeaderValue = struct {
 };
 const HeaderMap = std.StringArrayHashMap(HeaderValue);
 
+pub const Body = struct {
+    kind: BodyKind,
+    bytes: []const u8,
+};
+
 pub const Request = struct {
     const Self = @This();
 
@@ -56,10 +61,7 @@ pub const Request = struct {
     method: Method,
     url: []const u8,
     headers: ?HeaderMap = null,
-    body: ?struct {
-        kind: BodyKind,
-        bytes: []const u8,
-    } = null,
+    body: ?Body = null,
 };
 
 pub const Response = struct {

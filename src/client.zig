@@ -277,10 +277,23 @@ pub const Client = struct {
                 try self.state.writeHeaderValue(kv.key, value);
             }
         }
-        try self.state.finishHeaders();
 
         // write body
-        try self.state.writePayload(null);
+        if (request.body) |body| {
+            switch (body.kind) {
+                .JSON => try self.state.writeHeaderValue("Content-Type", "application/json"),
+                .URLEncodedForm => try self.state.writeHeaderValue("Content-Type", "application/x-www-form-urlencoded"),
+                else => {},
+            }
+            var contentLengthBuffer: [64]u8 = undefined;
+            const contentLength = try std.fmt.bufPrint(&contentLengthBuffer, "{}", .{body.bytes.len});
+            try self.state.writeHeaderValue("Content-Length", contentLength);
+            try self.state.finishHeaders();
+            try self.state.writePayload(body.bytes);
+        } else {
+            try self.state.finishHeaders();
+            try self.state.writePayload(null);
+        }
         root.logger.debug("Finished sending request...", .{});
 
         var event = try self.state.next();
