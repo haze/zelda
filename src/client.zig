@@ -46,29 +46,12 @@ fn preloadRootCA() void {
 
 var initRootCA = std.once(preloadRootCA);
 
-const GetAddrInfoError = if (builtin.target.os.tag == .windows) error{
-    TemporaryNameServerFailure,
-    NameServerFailure,
-    AddressFamilyNotSupported,
-    OutOfMemory,
-    UnknownHostName,
-    ServiceUnavailable,
-} else error{
-    HostLacksNetworkAddresses,
-    TemporaryNameServerFailure,
-    NameServerFailure,
-    AddressFamilyNotSupported,
-    OutOfMemory,
-    UnknownHostName,
-    ServiceUnavailable,
-};
-
 pub const Client = struct {
     const Self = @This();
     const HzzpSSLResponseParser = hzzp.parser.response.ResponseParser(IguanaClient.Reader);
     const HzzpResponseParser = hzzp.parser.response.ResponseParser(std.net.Stream.Reader);
-    pub const PerformError = error{ MissingStatus, ExpectedHeaders, Overflow } || std.os.ConnectError || std.os.SocketError || GetAddrInfoError || iguanaTLS.ClientConnectError(.default, std.net.Stream.Reader, std.net.Stream.Writer, false) || zuri.Uri.Error || std.fmt.BufPrintError || HzzpResponseParser.NextError || HzzpSSLResponseParser.NextError || Request.Error;
-    pub const InitError = error{} || std.mem.Allocator.Error || iguanaTLS.x509.DecodeDERError(std.io.Reader(*std.io.FixedBufferStream([]const u8), std.io.FixedBufferStream([]const u8).ReadError, std.io.FixedBufferStream([]const u8).read));
+    // pub const PerformError = error{ MissingStatus, ExpectedHeaders, Overflow } || std.os.ConnectError || std.os.SocketError || GetAddrInfoError || iguanaTLS.ClientConnectError(.default, std.net.Stream.Reader, std.net.Stream.Writer, false) || zuri.Uri.Error || std.fmt.BufPrintError || HzzpResponseParser.NextError || HzzpSSLResponseParser.NextError || Request.Error;
+    // pub const InitError = error{} || std.mem.Allocator.Error || iguanaTLS.x509.DecodeDERError(std.io.Reader(*std.io.FixedBufferStream([]const u8), std.io.FixedBufferStream([]const u8).ReadError, std.io.FixedBufferStream([]const u8).read));
 
     pub const IguanaClient = iguanaTLS.Client(std.net.Stream.Reader, std.net.Stream.Writer, iguanaTLS.ciphersuites.all, false);
     pub const HzzpSSLClient = hzzp.base.client.BaseClient(IguanaClient.Reader, IguanaClient.Writer);
@@ -170,7 +153,7 @@ pub const Client = struct {
     pub fn init(allocator: *std.mem.Allocator, options: struct {
         pem: ?[]const u8 = null,
         userAgent: ?[]const u8 = null,
-    }) Client.InitError!*Self {
+    }) !*Self {
         var client: *Self = try allocator.create(Self);
         errdefer allocator.destroy(client);
 
@@ -199,7 +182,7 @@ pub const Client = struct {
         return client;
     }
 
-    pub fn perform(self: *Self, request: Request) PerformError!Response {
+    pub fn perform(self: *Self, request: Request) !Response {
         var uri = try zuri.Uri.parse(request.url, false);
         const port: u16 = if (uri.port == null) if (std.mem.startsWith(u8, uri.scheme, "https")) @as(u16, 443) else @as(u16, 80) else uri.port.?;
         var tunnelHostBuf: [1 << 8]u8 = undefined;

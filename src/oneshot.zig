@@ -2,10 +2,9 @@ const std = @import("std");
 const req = @import("request.zig");
 const Client = @import("client.zig").Client;
 
-const OneshotPerformError = Client.InitError || Client.PerformError;
-const BasicPerformFunctionPrototype = fn (*std.mem.Allocator, []const u8) OneshotPerformError!req.Response;
+const BasicPerformFunctionPrototype = fn (*std.mem.Allocator, []const u8) !req.Response;
 
-pub fn get(allocator: *std.mem.Allocator, url: []const u8) OneshotPerformError!req.Response {
+pub fn get(allocator: *std.mem.Allocator, url: []const u8) !req.Response {
     var client = try Client.init(allocator, .{});
     defer client.deinit();
 
@@ -17,7 +16,7 @@ pub fn get(allocator: *std.mem.Allocator, url: []const u8) OneshotPerformError!r
     return try client.perform(request);
 }
 
-pub fn post(allocator: *std.mem.Allocator, url: []const u8, body: ?req.Body) OneshotPerformError!req.Response {
+pub fn post(allocator: *std.mem.Allocator, url: []const u8, body: ?req.Body) !req.Response {
     var client = try Client.init(allocator, .{});
     defer client.deinit();
 
