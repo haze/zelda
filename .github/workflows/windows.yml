@@ -1,0 +1,34 @@
+name: Windows
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: "0 7 * * *"
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - name: Disable CRLF
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v1
+        with:
+          version: master
+
+      - name: Test
+        run: zig build test
+
+      - name: Build examples
+        run: cd examples/whats_my_ip && zig build
