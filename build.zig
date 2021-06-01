@@ -42,6 +42,7 @@ pub fn build(b: *std.build.Builder) void {
     const sanitize_thread = b.option(bool, "sanitize-thread", "Enable ThreadSanitizer") orelse false;
 
     const file = b.addTest("src/tests.zig");
+    file.linkLibC();
     file.sanitize_thread = sanitize_thread;
     file.setTarget(target);
     file.setBuildMode(mode);

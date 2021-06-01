@@ -38,6 +38,7 @@ pub fn build(b: *std.build.Builder) void {
     const mode = b.standardReleaseOptions();
 
     const exe = b.addExecutable("whats_my_ip", "src/main.zig");
+    exe.linkLibC();
     exe.addPackage(pkgs.zelda);
     exe.setTarget(target);
     exe.setBuildMode(mode);
