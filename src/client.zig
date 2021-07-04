@@ -46,7 +46,9 @@ fn preloadRootCA() void {
 
 fn initWindows() void {
     if (std.builtin.os.tag == .windows) {
-        _ = try std.os.windows.WSAStartup(2, 2);
+        _ = std.os.windows.WSAStartup(2, 2) catch {
+            @panic("Failed to initialize on windows");
+        };
     }
 }
 
