@@ -29,7 +29,7 @@ pub fn printIPFromRaw(allocator: *std.mem.Allocator) !void {
     var stdout = std.io.getStdOut().writer();
 
     if (response.body) |body|
-        try stdout.print("My ip is {s}\n", .{response.body})
+        try stdout.print("My ip is {s}\n", .{body})
     else
         try stdout.writeAll("Failed to receive body from ipify\n");
 }
