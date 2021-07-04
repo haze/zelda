@@ -44,7 +44,14 @@ fn preloadRootCA() void {
         root.logger.debug("Loaded Roor CA", .{});
 }
 
+fn initWindows() void {
+    if (std.builtin.os.tag == .windows) {
+        _ = try std.os.windows.WSAStartup(2, 2);
+    }
+}
+
 var initRootCA = std.once(preloadRootCA);
+var windowsInit = std.once(initWindows);
 
 pub const Client = struct {
     const Self = @This();
@@ -178,6 +185,8 @@ pub const Client = struct {
         } else {
             client.userAgent = null;
         }
+
+        initWindows.call();
 
         return client;
     }
