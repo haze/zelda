@@ -186,7 +186,7 @@ pub const Client = struct {
             client.userAgent = null;
         }
 
-        initWindows.call();
+        windowsInit.call();
 
         return client;
     }
