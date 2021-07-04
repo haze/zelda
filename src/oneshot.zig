@@ -2,7 +2,7 @@ const std = @import("std");
 const req = @import("request.zig");
 const Client = @import("client.zig").Client;
 
-const BasicPerformFunctionPrototype = fn (*std.mem.Allocator, []const u8) !req.Response;
+const BasicPerformFunctionPrototype = fn (*std.mem.Allocator, []const u8) anyerror!req.Response;
 
 pub fn get(allocator: *std.mem.Allocator, url: []const u8) !req.Response {
     var client = try Client.init(allocator, .{});

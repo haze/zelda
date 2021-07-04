@@ -254,10 +254,10 @@ pub const Client = struct {
         if (request.headers) |headerMap| {
             var headerMapIter = headerMap.iterator();
             while (headerMapIter.next()) |kv| {
-                var value = try kv.value.value(self.allocator);
+                var value = try kv.value_ptr.value(self.allocator);
                 defer self.allocator.free(value);
 
-                try self.state.writeHeaderValue(kv.key, value);
+                try self.state.writeHeaderValue(kv.key_ptr.*, value);
             }
         }
 
@@ -298,7 +298,7 @@ pub const Client = struct {
                     std.mem.copy(u8, value, header.value);
 
                     if (response.headers.getEntry(header.name)) |entry| {
-                        try entry.value.parts.append(value);
+                        try entry.value_ptr.parts.append(value);
                     } else {
                         var list = req.HeaderValue.init(self.allocator);
                         try list.parts.append(value);

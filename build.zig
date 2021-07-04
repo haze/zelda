@@ -4,22 +4,22 @@ const Pkg = std.build.Pkg;
 pub const pkgs = struct {
     pub const hzzp = Pkg{
         .name = "hzzp",
-        .path = "hzzp/src/main.zig",
+        .path = .{ .path = "hzzp/src/main.zig" },
     };
 
     pub const zuri = Pkg{
         .name = "zuri",
-        .path = "zuri/src/zuri.zig",
+        .path = .{ .path = "zuri/src/zuri.zig" },
     };
 
     pub const iguanaTLS = Pkg{
         .name = "iguanaTLS",
-        .path = "iguanaTLS/src/main.zig",
+        .path = .{ .path = "iguanaTLS/src/main.zig" },
     };
 
     pub const zelda = Pkg{
         .name = "zelda",
-        .path = "src/main.zig",
+        .path = .{ .path = "src/main.zig" },
         .dependencies = &[_]Pkg{
             hzzp, zuri, iguanaTLS,
         },

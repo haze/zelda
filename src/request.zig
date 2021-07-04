@@ -82,11 +82,11 @@ pub const Response = struct {
     pub fn deinit(self: *Self) void {
         var headerIter = self.headers.iterator();
         while (headerIter.next()) |kv| {
-            self.allocator.free(kv.key);
-            for (kv.value.parts.items) |item| {
+            self.allocator.free(kv.key_ptr.*);
+            for (kv.value_ptr.parts.items) |item| {
                 self.allocator.free(item);
             }
-            kv.value.parts.deinit();
+            kv.value_ptr.parts.deinit();
         }
         self.headers.deinit();
         if (self.body) |body|
