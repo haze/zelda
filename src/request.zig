@@ -62,6 +62,7 @@ pub const Request = struct {
     url: []const u8,
     headers: ?HeaderMap = null,
     body: ?Body = null,
+    use_global_connection_pool: bool,
 };
 
 pub const Response = struct {

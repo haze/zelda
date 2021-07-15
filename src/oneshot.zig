@@ -11,6 +11,7 @@ pub fn get(allocator: *std.mem.Allocator, url: []const u8) !req.Response {
     var request = req.Request{
         .method = .GET,
         .url = url,
+        .use_global_connection_pool = true,
     };
 
     return try client.perform(request);
