@@ -10,10 +10,11 @@ pub fn main() anyerror!void {
     defer arena.deinit();
 
     const url = "https://google.com";
-    const noPoolAvg = try testConnection(&arena.allocator, url, false);
+    // const noPoolAvg = try testConnection(&arena.allocator, url, false);
     const poolAvg = try testConnection(&arena.allocator, url, true);
+    _ = poolAvg;
 
-    out.info("pooling saved an avg of {}", .{std.fmt.fmtDuration(noPoolAvg - poolAvg)});
+    // out.info("pooling saved an avg of {}", .{std.fmt.fmtDuration(noPoolAvg - poolAvg)});
 }
 
 fn testConnection(allocator: *std.mem.Allocator, url: []const u8, use_conn_pool: bool) anyerror!u64 {

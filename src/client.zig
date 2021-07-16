@@ -97,7 +97,10 @@ const StoredConnection = struct {
     next: ?*StoredConnection = null,
 
     allocator: *std.mem.Allocator,
-    clientState: *Client.State,
+    clientState: union(enum) {
+        SSL: Client.IguanaClient,
+        Normal: std.net.Stream,
+    },
 
     criteria: Criteria,
 
@@ -169,7 +172,6 @@ pub const Client = struct {
     pub const State = union(enum) {
         Created,
         ConnectedSSL: struct {
-            tcpConnection: std.net.Stream,
             tunnel: IguanaClient,
             client: HzzpSSLClient,
         },
@@ -185,14 +187,6 @@ pub const Client = struct {
             SSLReader: HzzpSSLClient.PayloadReader,
             Reader: HzzpClient.PayloadReader,
         };
-
-        pub fn reset(self: *State) void {
-            switch (self.*) {
-                .ConnectedSSL => |*state| state.client.reset(),
-                .Connected => |*state| state.client.reset(),
-                else => unreachable,
-            }
-        }
 
         pub fn payloadReader(self: *State) PayloadReader {
             return switch (self.*) {
@@ -251,7 +245,7 @@ pub const Client = struct {
     };
 
     allocator: *std.mem.Allocator,
-    state: *State,
+    state: State,
     userProvidedChain: bool,
     trustChain: ?iguanaTLS.x509.CertificateChain,
     clientReadBuffer: []u8,
@@ -275,8 +269,7 @@ pub const Client = struct {
         errdefer allocator.destroy(client);
 
         client.allocator = allocator;
-        client.state = try allocator.create(Self.State);
-        client.state.* = .Created;
+        client.state = .Created;
 
         client.userProvidedChain = options.pem != null;
         client.clientReadBuffer = try allocator.alloc(u8, 1 << 13);
@@ -308,30 +301,19 @@ pub const Client = struct {
         var tunnelHostBuf: [1 << 8]u8 = undefined;
         var tunnelHost: []const u8 = undefined;
         var isSSL = port == 443;
-        var tcpConnection = switch (uri.host) {
-            .name => |host| blk: {
-                if (host.len == 0) return error.MissingScheme;
-                tunnelHost = host;
-                root.logger.debug("Opening tcp connection to {s}:{}...", .{ host, port });
-                break :blk try std.net.tcpConnectToHost(self.allocator, host, port);
-            },
-            .ip => |addr| blk: {
-                // if we have an ip, print it as the host for the iguanaTLS client
-                tunnelHost = try std.fmt.bufPrint(&tunnelHostBuf, "{}", .{addr});
-                root.logger.debug("Opening tcp connection to {s}:{}...", .{ tunnelHost, port });
-                break :blk try std.net.tcpConnectToAddress(addr);
-            },
-        };
-
-        var chain = if (self.trustChain) |chain|
-            chain.data.items
-        else
-            root_ca.cert_chain.?.data.items;
-
-        var created_new_connection = false;
         var is_resuing_a_connection = false;
 
-        root.logger.debug("req={}", .{request});
+        switch (uri.host) {
+            .name => |host| {
+                if (host.len == 0) return error.MissingScheme;
+                tunnelHost = host;
+            },
+            .ip => |addr| {
+                // if we have an ip, print it as the host for the iguanaTLS client
+                tunnelHost = try std.fmt.bufPrint(&tunnelHostBuf, "{}", .{addr});
+            },
+        }
+
         if (request.use_global_connection_pool) {
             root.logger.info("Searching connection cache...", .{});
             if (globalConnectionCache.findSuitableConnection(StoredConnection.Criteria{
@@ -340,23 +322,50 @@ pub const Client = struct {
                 .is_tls = isSSL,
             })) |conn| {
                 is_resuing_a_connection = true;
-                self.state = conn.clientState;
-                self.state.reset();
+                self.state = switch (conn.clientState) {
+                    .SSL => |*sslTunnel| .{
+                        .ConnectedSSL = .{
+                            .tunnel = sslTunnel.*,
+                            .client = hzzp.base.client.create(self.clientReadBuffer, sslTunnel.reader(), sslTunnel.writer()),
+                        },
+                    },
+                    .Normal => |tcpConnection| .{ .Connected = .{
+                        .tcpConnection = tcpConnection,
+                        .client = hzzp.base.client.create(self.clientReadBuffer, tcpConnection.reader(), tcpConnection.writer()),
+                    } },
+                };
                 conn.removeFromCache(&globalConnectionCache);
 
-                switch (self.state.*) {
-                    .ConnectedSSL => |s| {
-                        root.logger.info("Reused connection ciphersuite = {}", .{s.tunnel.ciphersuite});
-                    },
-                    else => {},
-                }
                 root.logger.info("Found a connection to reuse! {}", .{conn.criteria});
             } else {
                 root.logger.info("No reusable connection found", .{});
             }
         }
 
+        var chain = if (self.trustChain) |chain|
+            chain.data.items
+        else
+            root_ca.cert_chain.?.data.items;
+
+        var created_new_connection = false;
+
+        root.logger.debug("req={}", .{request});
         if (!is_resuing_a_connection) {
+            var tcpConnection = switch (uri.host) {
+                .name => |host| blk: {
+                    if (host.len == 0) return error.MissingScheme;
+                    tunnelHost = host;
+                    root.logger.debug("Opening tcp connection to {s}:{}...", .{ host, port });
+                    break :blk try std.net.tcpConnectToHost(self.allocator, host, port);
+                },
+                .ip => |addr| blk: {
+                    // if we have an ip, print it as the host for the iguanaTLS client
+                    tunnelHost = try std.fmt.bufPrint(&tunnelHostBuf, "{}", .{addr});
+                    root.logger.debug("Opening tcp connection to {s}:{}...", .{ tunnelHost, port });
+                    break :blk try std.net.tcpConnectToAddress(addr);
+                },
+            };
+
             if (isSSL) {
                 root.logger.debug("Opening TLS tunnel...", .{});
                 var tunnel = try iguanaTLS.client_connect(.{
@@ -369,9 +378,8 @@ pub const Client = struct {
                 root.logger.debug("Tunnel open ({}), creating client now", .{tunnel.ciphersuite});
                 var client = hzzp.base.client.create(self.clientReadBuffer, tunnel.reader(), tunnel.writer());
                 created_new_connection = true;
-                self.state.* = .{
+                self.state = .{
                     .ConnectedSSL = .{
-                        .tcpConnection = tcpConnection,
                         .tunnel = tunnel,
                         .client = client,
                     },
@@ -379,10 +387,10 @@ pub const Client = struct {
             } else {
                 var client = hzzp.base.client.create(self.clientReadBuffer, tcpConnection.reader(), tcpConnection.writer());
                 created_new_connection = true;
-                self.state.* = .{
+                self.state = .{
                     .Connected = .{
-                        .tcpConnection = tcpConnection,
                         .client = client,
+                        .tcpConnection = tcpConnection,
                     },
                 };
             }
@@ -397,7 +405,11 @@ pub const Client = struct {
             connPack.next = null;
             connPack.prev = null;
             connPack.allocator = self.allocator;
-            connPack.clientState = self.state;
+            connPack.clientState = switch (self.state) {
+                .ConnectedSSL => |sslState| .{ .SSL = sslState.tunnel },
+                .Connected => |normalState| .{ .Normal = normalState.tcpConnection },
+                else => unreachable,
+            };
             connPack.criteria = StoredConnection.Criteria{
                 .host = .{ .allocated = try self.allocator.alloc(u8, tunnelHost.len) },
                 .port = port,
@@ -497,9 +509,9 @@ pub const Client = struct {
         };
 
         // finish
-        if (!added_connection_to_global_cache) {
-            self.allocator.destroy(self.state);
-        }
+        // if (!added_connection_to_global_cache) {
+        //     self.allocator.destroy(self.state);
+        // }
 
         return response;
     }
