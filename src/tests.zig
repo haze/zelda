@@ -3,6 +3,7 @@ const zelda = @import("zelda");
 
 // NOTE: this test will fail if ziglang.org is down!
 test "fetch status code of ziglang.org" {
+    defer zelda.cleanup();
     var response = try zelda.get(std.testing.allocator, "https://ziglang.org");
     defer response.deinit();
 
@@ -14,6 +15,8 @@ const HTTPBinResponse = struct {
 };
 
 test "post some data and get it back" {
+    defer zelda.cleanup();
+
     const data = "bruh moment";
 
     var response = try zelda.postAndParseResponse(HTTPBinResponse, .{
@@ -35,6 +38,8 @@ const TestDataStruct = struct {
 };
 
 test "post some json data and get it back" {
+    defer zelda.cleanup();
+
     var source = TestDataStruct{
         .number_of_bruhs = 69,
         .bruh_status = "engaged",
