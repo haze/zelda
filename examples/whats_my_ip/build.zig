@@ -1,27 +1,28 @@
 const std = @import("std");
+const zig_libressl = @import("zig-libressl-build.zig");
 const Pkg = std.build.Pkg;
 
 pub const pkgs = struct {
     pub const hzzp = Pkg{
         .name = "hzzp",
-        .path = .{ .path = "../../hzzp/src/main.zig" },
+        .path = std.build.FileSource.relative("../../hzzp/src/main.zig"),
     };
 
     pub const zuri = Pkg{
         .name = "zuri",
-        .path = .{ .path = "../../zuri/src/zuri.zig" },
+        .path = std.build.FileSource.relative("../../zuri/src/zuri.zig"),
     };
 
-    pub const iguanaTLS = Pkg{
-        .name = "iguanaTLS",
-        .path = .{ .path = "../../iguanaTLS/src/main.zig" },
+    pub const libressl = Pkg{
+        .name = "zig-libressl",
+        .path = std.build.FileSource.relative("../../zig-libressl2/src/main.zig"),
     };
 
     pub const zelda = Pkg{
         .name = "zelda",
         .path = .{ .path = "../../src/main.zig" },
         .dependencies = &[_]Pkg{
-            hzzp, zuri, iguanaTLS,
+            hzzp, zuri, libressl,
         },
     };
 };
@@ -43,6 +44,7 @@ pub fn build(b: *std.build.Builder) void {
     exe.setTarget(target);
     exe.setBuildMode(mode);
     exe.install();
+    zig_libressl.useLibreSslForStep(b, exe, "libressl");
 
     const run_cmd = exe.run();
     run_cmd.step.dependOn(b.getInstallStep());

@@ -2,6 +2,7 @@ const std = @import("std");
 const root = @import("main.zig");
 
 const hzzp = root.hzzp;
+const libressl = root.libressl;
 
 pub const Method = enum { GET, POST, PUT, DELETE, HEAD, OPTIONS, CONNECT, PATCH, TRACE };
 
@@ -46,7 +47,8 @@ pub const HeaderValue = struct {
         self.* = undefined;
     }
 };
-const HeaderMap = std.StringArrayHashMap(HeaderValue);
+
+pub const HeaderMap = std.StringArrayHashMap(HeaderValue);
 
 pub const Body = struct {
     kind: BodyKind,
@@ -63,6 +65,7 @@ pub const Request = struct {
     headers: ?HeaderMap = null,
     body: ?Body = null,
     use_global_connection_pool: bool,
+    tls_configuration: ?libressl.TlsConfiguration = null,
 };
 
 pub const Response = struct {

@@ -3,18 +3,20 @@ const zelda = @import("zelda");
 
 const out = std.log.scoped(.connection_pooling);
 
-const TestCount = 8;
+const TestCount = 32;
 
 pub fn main() anyerror!void {
     var arena = std.heap.ArenaAllocator.init(std.heap.c_allocator);
     defer arena.deinit();
 
-    const url = "https://google.com";
-    // const noPoolAvg = try testConnection(&arena.allocator, url, false);
+    const url = "http://example.com";
+    var timer = try std.time.Timer.start();
+    const noPoolAvg = try testConnection(&arena.allocator, url, false);
+    std.debug.print("no pool took: {}\n", .{std.fmt.fmtDuration(timer.lap())});
     const poolAvg = try testConnection(&arena.allocator, url, true);
-    _ = poolAvg;
+    std.debug.print("pool took: {}\n", .{std.fmt.fmtDuration(timer.lap())});
 
-    // out.info("pooling saved an avg of {}", .{std.fmt.fmtDuration(noPoolAvg - poolAvg)});
+    std.debug.print("{} runs ea: pooling saved an avg of {}\n", .{ TestCount, std.fmt.fmtDuration(noPoolAvg - poolAvg) });
 }
 
 fn testConnection(allocator: *std.mem.Allocator, url: []const u8, use_conn_pool: bool) anyerror!u64 {
@@ -25,7 +27,7 @@ fn testConnection(allocator: *std.mem.Allocator, url: []const u8, use_conn_pool:
     var timer = try std.time.Timer.start();
     while (count < TestCount) : (count += 1) {
         timer.reset();
-        var client = try zelda.Client.init(allocator, .{});
+        var client = try zelda.HttpClient.init(allocator, .{});
         defer client.deinit();
 
         var request = zelda.request.Request{ .method = .GET, .url = url, .use_global_connection_pool = use_conn_pool };

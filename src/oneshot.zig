@@ -25,6 +25,7 @@ pub fn post(allocator: *std.mem.Allocator, url: []const u8, body: ?req.Body) !re
         .method = .POST,
         .url = url,
         .body = body,
+        .use_global_connection_pool = true,
     };
 
     return try client.perform(request);

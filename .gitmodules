@@ -1,9 +1,9 @@
 [submodule "hzzp"]
 	path = hzzp
 	url = https://github.com/truemedian/hzzp
-[submodule "iguanaTLS"]
-	path = iguanaTLS
-	url = https://github.com/alexnask/iguanaTLS
 [submodule "zuri"]
 	path = zuri
 	url = https://github.com/Vexu/zuri
+[submodule "zig-libressl"]
+	path = zig-libressl
+	url = git@github.com:haze/zig-libressl
