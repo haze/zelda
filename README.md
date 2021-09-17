@@ -1,14 +1,15 @@
+<img height="32" src="https://upload.wikimedia.org/wikipedia/commons/8/86/Triforce.svg"></img>
+
 zelda [![License](https://img.shields.io/badge/license-MIT-8FBD08.svg)](https://shields.io/) [![Zig](https://img.shields.io/badge/Made_with-Zig-F7A41D.svg)](https://shields.io/)
 ====
-A short and sweet package for 100% native [Zig](https://ziglang.org) HTTP requests.
+A short and sweet package for native [Zig](https://ziglang.org) HTTP(s) requests.
 
-Zelda uses [hzzp](https://github.com/truemedian/hzzp) and [iguanaTLS](https://github.com/alexnask/iguanaTLS) to provide a simple interface for HTTP 1.1 interactions. There is a lot that goes into retrieving data from a remote server, but sometimes you don't want to spend hours mulling over the details, especially for projects where the transport is only a portion of the story of the larger program.
+Zelda uses [hzzp](https://github.com/truemedian/hzzp) and [zig-libressl](https://github.com/haze/zig-libressl) to provide a simple interface for HTTP 1.1 interactions. There is a lot that goes into retrieving data from a remote server, but sometimes you don't want to spend hours mulling over the details, especially for projects where the transport is only a portion of the story of the larger program.
 
 ### Capabilities
 - [x] HTTP/1.1
-- [x] TLS 1.2
+- [x] TLS 1.1, TLS 1.2, TLS 1.3
 - [x] Simple One-Shot interface for raw bytes & JSON encoded data
-- [x] Zig only dependencies
 
 ### Example
 ```zig
@@ -49,9 +50,6 @@ pub fn printIPFromRaw(allocator: *std.mem.Allocator) !void {
         try stdout.writeAll("Failed to receive body from ipify\n");
 }
 ```
-
-#### Things to think about
-- [ ] Should we aim to reuse Clients? What cruft could we reduce by reusing clients? Should we establish a connection pool for oneshots?
 
 Of course, if this library is missing anything, feel free to open a Pull Request or issue 😊
 
