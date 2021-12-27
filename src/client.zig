@@ -11,7 +11,7 @@ const zuri = root.zuri;
 const hzzp = root.hzzp;
 
 fn initWindows() void {
-    if (std.builtin.os.tag == .windows) {
+    if (@import("builtin").os.tag == .windows) {
         _ = std.os.windows.WSAStartup(2, 2) catch {
             @panic("Failed to initialize on windows");
         };
@@ -34,7 +34,7 @@ const CurlConnectionPoolMaxClients = 5;
 const StoredConnection = struct {
     const Self = @This();
     const Criteria = struct {
-        allocator: *std.mem.Allocator,
+        allocator: std.mem.Allocator,
         host: union(enum) {
             provided: []const u8,
             allocated: []u8,
@@ -66,7 +66,7 @@ const StoredConnection = struct {
         }
     };
 
-    allocator: *std.mem.Allocator,
+    allocator: std.mem.Allocator,
     clientState: union(enum) {
         Ssl: libressl.SslStream,
         Normal: std.net.Stream,
@@ -206,7 +206,7 @@ pub const Client = struct {
         }
     };
 
-    allocator: *std.mem.Allocator,
+    allocator: std.mem.Allocator,
     state: State,
     clientReadBuffer: []u8,
     userAgent: ?[]u8,
@@ -219,7 +219,7 @@ pub const Client = struct {
     }
 
     /// if a user agent is provided, it will be copied into the client and free'd once deinit is called
-    pub fn init(allocator: *std.mem.Allocator, options: struct {
+    pub fn init(allocator: std.mem.Allocator, options: struct {
         userAgent: ?[]const u8 = null,
     }) !*Self {
         var client: *Self = try allocator.create(Self);

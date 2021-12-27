@@ -4,7 +4,7 @@ const Client = @import("client.zig").Client;
 
 const BasicPerformFunctionPrototype = fn (*std.mem.Allocator, []const u8) anyerror!req.Response;
 
-pub fn get(allocator: *std.mem.Allocator, url: []const u8) !req.Response {
+pub fn get(allocator: std.mem.Allocator, url: []const u8) !req.Response {
     var client = try Client.init(allocator, .{});
     defer client.deinit();
 
@@ -17,7 +17,7 @@ pub fn get(allocator: *std.mem.Allocator, url: []const u8) !req.Response {
     return try client.perform(request);
 }
 
-pub fn post(allocator: *std.mem.Allocator, url: []const u8, body: ?req.Body) !req.Response {
+pub fn post(allocator: std.mem.Allocator, url: []const u8, body: ?req.Body) !req.Response {
     var client = try Client.init(allocator, .{});
     defer client.deinit();
 
@@ -35,7 +35,7 @@ pub fn post(allocator: *std.mem.Allocator, url: []const u8, body: ?req.Body) !re
 pub fn postAndParseResponse(
     comptime Type: type,
     parseOptions: std.json.ParseOptions,
-    allocator: *std.mem.Allocator,
+    allocator: std.mem.Allocator,
     url: []const u8,
     body: ?req.Body,
 ) !Type {
@@ -46,7 +46,7 @@ pub fn postAndParseResponse(
     return std.json.parse(Type, &std.json.TokenStream.init(responseBytes), parseOptions);
 }
 
-pub fn postJson(allocator: *std.mem.Allocator, url: []const u8, jsonValue: anytype, stringifyOptions: std.json.StringifyOptions) !req.Response {
+pub fn postJson(allocator: std.mem.Allocator, url: []const u8, jsonValue: anytype, stringifyOptions: std.json.StringifyOptions) !req.Response {
     var buffer = std.ArrayList(u8).init(allocator);
     defer buffer.deinit();
 
@@ -57,11 +57,11 @@ pub fn postJson(allocator: *std.mem.Allocator, url: []const u8, jsonValue: anyty
 
 /// Caller is responsible for caling std.json.parseFree (with the same parseOptions) on the returned value
 const PostAndParseOptions = struct {
-    allocator: *std.mem.Allocator,
+    allocator: std.mem.Allocator,
     parseOptions: std.json.ParseOptions = .{},
     stringifyOptions: std.json.StringifyOptions = .{},
 };
-fn parseOptionsWithAllocator(allocator: *std.mem.Allocator, options: std.json.ParseOptions) std.json.ParseOptions {
+fn parseOptionsWithAllocator(allocator: std.mem.Allocator, options: std.json.ParseOptions) std.json.ParseOptions {
     var newOpts = options;
     newOpts.allocator = allocator;
     return newOpts;
@@ -79,7 +79,7 @@ pub fn postJsonAndParseResponse(comptime OutputType: type, url: []const u8, json
 pub fn getAndParseResponse(
     comptime Type: type,
     parseOptions: std.json.ParseOptions,
-    allocator: *std.mem.Allocator,
+    allocator: std.mem.Allocator,
     url: []const u8,
 ) !Type {
     var response = try get(allocator, url);

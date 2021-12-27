@@ -20,7 +20,7 @@ pub const HeaderValue = struct {
     ///     Cache-Control: no-store
     /// Into
     ///     Cache-Control: no-cache, no-store
-    pub fn value(self: HeaderValue, allocator: *std.mem.Allocator) std.mem.Allocator.Error![]u8 {
+    pub fn value(self: HeaderValue, allocator: std.mem.Allocator) std.mem.Allocator.Error![]u8 {
         // first, find out how much we need to allocate
         // 2 = ", "
         var bytesNeeded = 2 * (self.parts.items.len - 1);
@@ -36,7 +36,7 @@ pub const HeaderValue = struct {
         return buffer;
     }
 
-    pub fn init(allocator: *std.mem.Allocator) HeaderValue {
+    pub fn init(allocator: std.mem.Allocator) HeaderValue {
         return .{
             .parts = StringList.init(allocator),
         };
@@ -72,10 +72,10 @@ pub const Response = struct {
     const Self = @This();
     headers: HeaderMap,
     body: ?[]u8 = null,
-    allocator: *std.mem.Allocator,
+    allocator: std.mem.Allocator,
     statusCode: hzzp.StatusCode,
 
-    pub fn init(allocator: *std.mem.Allocator, statusCode: hzzp.StatusCode) Self {
+    pub fn init(allocator: std.mem.Allocator, statusCode: hzzp.StatusCode) Self {
         return .{
             .headers = HeaderMap.init(allocator),
             .allocator = allocator,
