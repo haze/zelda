@@ -11,15 +11,18 @@ pub fn main() anyerror!void {
 
     const url = "http://example.com";
     var timer = try std.time.Timer.start();
-    const noPoolAvg = try testConnection(&arena.allocator, url, false);
+    const no_pool_average = try testConnection(arena.allocator(), url, false);
     std.debug.print("no pool took: {}\n", .{std.fmt.fmtDuration(timer.lap())});
-    const poolAvg = try testConnection(&arena.allocator, url, true);
+    const pool_average = try testConnection(arena.allocator(), url, true);
     std.debug.print("pool took: {}\n", .{std.fmt.fmtDuration(timer.lap())});
 
-    std.debug.print("{} runs ea: pooling saved an avg of {}\n", .{ TestCount, std.fmt.fmtDuration(noPoolAvg - poolAvg) });
+    if (pool_average < no_pool_average)
+        std.debug.print("{} runs ea: pooling saved an avg of {}\n", .{ TestCount, std.fmt.fmtDuration(no_pool_average - pool_average) })
+    else
+        std.debug.print("{} runs ea: pooling was slower by an avg of {}\n", .{ TestCount, std.fmt.fmtDuration(pool_average - no_pool_average) });
 }
 
-fn testConnection(allocator: *std.mem.Allocator, url: []const u8, use_conn_pool: bool) anyerror!u64 {
+fn testConnection(allocator: std.mem.Allocator, url: []const u8, use_conn_pool: bool) anyerror!u64 {
     var times = std.ArrayList(u64).init(allocator);
     defer times.deinit();
 

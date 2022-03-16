@@ -27,7 +27,9 @@ pub const pkgs = struct {
     };
 };
 
-pub fn build(b: *std.build.Builder) void {
+pub fn build(b: *std.build.Builder) !void {
+    const use_system_libressl = b.option(bool, "use-system-libressl", "Link and build from the system installed copy of LibreSSL instead of building it from source") orelse false;
+
     const mode = b.standardReleaseOptions();
     const target = b.standardTargetOptions(.{});
 
@@ -41,7 +43,7 @@ pub fn build(b: *std.build.Builder) void {
     create_test_step.setTarget(target);
     create_test_step.setBuildMode(mode);
     create_test_step.addPackage(pkgs.zelda);
-    zig_libressl.useLibreSslForStep(b, create_test_step, "zig-libressl/libressl");
+    try zig_libressl.useLibreSslForStep(b, create_test_step, "zig-libressl/libressl", use_system_libressl);
 
     if (maybe_test_filter) |test_filter| {
         create_test_step.setFilter(test_filter);

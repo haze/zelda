@@ -219,9 +219,12 @@ pub const Client = struct {
     }
 
     /// if a user agent is provided, it will be copied into the client and free'd once deinit is called
-    pub fn init(allocator: std.mem.Allocator, options: struct {
-        userAgent: ?[]const u8 = null,
-    }) !*Self {
+    pub fn init(
+        allocator: std.mem.Allocator,
+        options: struct {
+            userAgent: ?[]const u8 = null,
+        },
+    ) !*Self {
         var client: *Self = try allocator.create(Self);
         errdefer allocator.destroy(client);
 
@@ -306,7 +309,9 @@ pub const Client = struct {
             var tcpConnection = switch (uri.host) {
                 .name => |host| blk: {
                     root.logger.debug("Opening tcp connection to {s}:{}...", .{ host, port });
-                    break :blk try std.net.tcpConnectToHost(self.allocator, host, port);
+                    var address_list = try getAddressList(self.allocator, host, port);
+                    if (address_list.len == 0) return error.UnknownHostName;
+                    break :blk try std.net.tcpConnectToAddress(address_list[0]);
                 },
                 .ip => |addr| blk: {
                     root.logger.debug("Opening tcp connection to {s}:{}...", .{ tunnelHost, port });
@@ -404,7 +409,7 @@ pub const Client = struct {
 
         event = try self.state.next();
 
-        while (event != null and event.? != .head_done) : (event = try self.state.next()) {
+        while (event != null and event.? != .head_done) {
             switch (event.?) {
                 .header => |header| {
                     const value = try self.allocator.alloc(u8, header.value.len);
@@ -424,14 +429,21 @@ pub const Client = struct {
                 },
                 else => return error.ExpectedHeaders,
             }
+            event = try self.state.next();
         }
 
         // read response body (if any)
         var bodyReader = self.state.payloadReader();
-        response.body = switch (bodyReader) {
-            .SslReader => |reader| try reader.readAllAlloc(self.allocator, std.math.maxInt(u64)),
-            .Reader => |reader| try reader.readAllAlloc(self.allocator, std.math.maxInt(u64)),
-        };
+        switch (bodyReader) {
+            .SslReader => |reader| response.body = try reader.readAllAlloc(self.allocator, std.math.maxInt(u64)),
+            .Reader => |reader| response.body = try reader.readAllAlloc(self.allocator, std.math.maxInt(u64)),
+        }
+
+        // This results in LLVM ir errors
+        // response.body = switch (bodyReader) {
+        //     .SslReader => |reader| try reader.readAllAlloc(self.allocator, std.math.maxInt(u64)),
+        //     .Reader => |reader| try reader.readAllAlloc(self.allocator, std.math.maxInt(u64)),
+        // };
 
         if (created_new_connection and request.use_global_connection_pool) {
             var stored_connection = try self.allocator.create(StoredConnection);
@@ -461,3 +473,112 @@ pub const Client = struct {
         return response;
     }
 };
+
+/// Call `AddressList.deinit` on the result.
+pub fn getAddressList(allocator: std.mem.Allocator, name: []const u8, port: u16) ![]std.net.Address {
+    const os = std.os;
+    var addrs: []std.net.Address = undefined;
+    if (builtin.target.os.tag == .windows or builtin.link_libc) {
+        const name_c = try std.cstr.addNullByte(allocator, name);
+        defer allocator.free(name_c);
+
+        const port_c = try std.fmt.allocPrintZ(allocator, "{}", .{port});
+        defer allocator.free(port_c);
+
+        const sys = if (builtin.target.os.tag == .windows) os.windows.ws2_32 else os.system;
+        const hints = os.addrinfo{
+            .flags = sys.AI.NUMERICSERV,
+            .family = os.AF.UNSPEC,
+            .socktype = os.SOCK.STREAM,
+            .protocol = os.IPPROTO.TCP,
+            .canonname = null,
+            .addr = null,
+            .addrlen = 0,
+            .next = null,
+        };
+        var res: *os.addrinfo = undefined;
+        const rc = sys.getaddrinfo(name_c.ptr, port_c.ptr, &hints, &res);
+        if (builtin.target.os.tag == .windows) switch (@intToEnum(os.windows.ws2_32.WinsockError, @intCast(u16, rc))) {
+            @intToEnum(os.windows.ws2_32.WinsockError, 0) => {},
+            .WSATRY_AGAIN => return error.TemporaryNameServerFailure,
+            .WSANO_RECOVERY => return error.NameServerFailure,
+            .WSAEAFNOSUPPORT => return error.AddressFamilyNotSupported,
+            .WSA_NOT_ENOUGH_MEMORY => return error.OutOfMemory,
+            .WSAHOST_NOT_FOUND => return error.UnknownHostName,
+            .WSATYPE_NOT_FOUND => return error.ServiceUnavailable,
+            .WSAEINVAL => unreachable,
+            .WSAESOCKTNOSUPPORT => unreachable,
+            else => |err| return os.windows.unexpectedWSAError(err),
+        } else switch (rc) {
+            @intToEnum(sys.EAI, 0) => {},
+            .ADDRFAMILY => return error.HostLacksNetworkAddresses,
+            .AGAIN => return error.TemporaryNameServerFailure,
+            .BADFLAGS => unreachable, // Invalid hints
+            .FAIL => return error.NameServerFailure,
+            .FAMILY => return error.AddressFamilyNotSupported,
+            .MEMORY => return error.OutOfMemory,
+            .NODATA => return error.HostLacksNetworkAddresses,
+            .NONAME => return error.UnknownHostName,
+            .SERVICE => return error.ServiceUnavailable,
+            .SOCKTYPE => unreachable, // Invalid socket type requested in hints
+            .SYSTEM => switch (os.errno(-1)) {
+                else => |e| return os.unexpectedErrno(e),
+            },
+            else => unreachable,
+        }
+        defer sys.freeaddrinfo(res);
+
+        const addr_count = blk: {
+            var count: usize = 0;
+            var it: ?*os.addrinfo = res;
+            while (it) |info| : (it = info.next) {
+                if (info.addr != null) {
+                    count += 1;
+                }
+            }
+            break :blk count;
+        };
+        addrs = try allocator.alloc(std.net.Address, addr_count);
+
+        var it: ?*os.addrinfo = res;
+        var i: usize = 0;
+        while (it) |info| : (it = info.next) {
+            const addr = info.addr orelse continue;
+            addrs[i] = std.net.Address.initPosix(@alignCast(4, addr));
+
+            // if (info.canonname) |n| {
+            //     if (result.canon_name == null) {
+            //         result.canon_name = try arena.dupe(u8, mem.sliceTo(n, 0));
+            //     }
+            // }
+            i += 1;
+        }
+
+        return addrs;
+    }
+
+    if (builtin.target.os.tag == .linux) {
+        const flags = std.c.AI.NUMERICSERV;
+        const family = os.AF.UNSPEC;
+        var lookup_addrs = std.ArrayList(std.net.LookupAddr).init(allocator);
+        defer lookup_addrs.deinit();
+
+        var canon = std.ArrayList(u8).init(allocator);
+        defer canon.deinit();
+
+        try std.net.linuxLookupName(&lookup_addrs, &canon, name, family, flags, port);
+
+        addrs = try allocator.alloc(std.net.Address, lookup_addrs.items.len);
+        // if (canon.items.len != 0) {
+        //     result.canon_name = canon.toOwnedSlice();
+        // }
+
+        for (lookup_addrs.items) |lookup_addr, i| {
+            addrs[i] = lookup_addr.addr;
+            std.debug.assert(addrs[i].getPort() == port);
+        }
+
+        return addrs;
+    }
+    @compileError("std.net.getAddressList unimplemented for this OS");
+}

@@ -15,7 +15,7 @@ pub const pkgs = struct {
 
     pub const libressl = Pkg{
         .name = "zig-libressl",
-        .path = std.build.FileSource.relative("../../zig-libressl2/src/main.zig"),
+        .path = std.build.FileSource.relative("../../zig-libressl/src/main.zig"),
     };
 
     pub const zelda = Pkg{
@@ -27,7 +27,8 @@ pub const pkgs = struct {
     };
 };
 
-pub fn build(b: *std.build.Builder) void {
+pub fn build(b: *std.build.Builder) !void {
+    const use_system_libressl = b.option(bool, "use-system-libressl", "Link and build from the system installed copy of LibreSSL instead of building it from source") orelse false;
     // Standard target options allows the person running `zig build` to choose
     // what target to build for. Here we do not override the defaults, which
     // means any target is allowed, and the default is native. Other options
@@ -44,7 +45,7 @@ pub fn build(b: *std.build.Builder) void {
     exe.setTarget(target);
     exe.setBuildMode(mode);
     exe.install();
-    zig_libressl.useLibreSslForStep(b, exe, "libressl");
+    try zig_libressl.useLibreSslForStep(b, exe, "libressl", use_system_libressl);
 
     const run_cmd = exe.run();
     run_cmd.step.dependOn(b.getInstallStep());

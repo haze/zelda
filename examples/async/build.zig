@@ -29,6 +29,7 @@ pub const pkgs = struct {
 
 pub fn build(b: *std.build.Builder) !void {
     const use_system_libressl = b.option(bool, "use-system-libressl", "Link and build from the system installed copy of LibreSSL instead of building it from source") orelse false;
+
     // Standard target options allows the person running `zig build` to choose
     // what target to build for. Here we do not override the defaults, which
     // means any target is allowed, and the default is native. Other options
@@ -39,7 +40,7 @@ pub fn build(b: *std.build.Builder) !void {
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
     const mode = b.standardReleaseOptions();
 
-    const exe = b.addExecutable("connection_pooling", "src/main.zig");
+    const exe = b.addExecutable("async_zelda", "src/main.zig");
     exe.linkLibC();
     exe.addPackage(pkgs.zelda);
     exe.setTarget(target);

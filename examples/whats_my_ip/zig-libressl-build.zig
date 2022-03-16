@@ -1,1 +1,1 @@
-../../zig-libressl2/build.zig
+../../zig-libressl/build.zig
