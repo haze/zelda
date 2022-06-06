@@ -5,22 +5,22 @@ const Pkg = std.build.Pkg;
 pub const pkgs = struct {
     pub const hzzp = Pkg{
         .name = "hzzp",
-        .path = std.build.FileSource.relative("hzzp/src/main.zig"),
+        .source = std.build.FileSource.relative("hzzp/src/main.zig"),
     };
 
     pub const zuri = Pkg{
         .name = "zuri",
-        .path = std.build.FileSource.relative("zuri/src/zuri.zig"),
+        .source = std.build.FileSource.relative("zuri/src/zuri.zig"),
     };
 
     pub const libressl = Pkg{
         .name = "zig-libressl",
-        .path = std.build.FileSource.relative("zig-libressl/src/main.zig"),
+        .source = std.build.FileSource.relative("zig-libressl/src/main.zig"),
     };
 
     pub const zelda = Pkg{
         .name = "zelda",
-        .path = .{ .path = "src/main.zig" },
+        .source = .{ .path = "src/main.zig" },
         .dependencies = &[_]Pkg{
             hzzp, zuri, libressl,
         },

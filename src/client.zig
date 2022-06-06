@@ -310,6 +310,7 @@ pub const Client = struct {
                 .name => |host| blk: {
                     root.logger.debug("Opening tcp connection to {s}:{}...", .{ host, port });
                     var address_list = try getAddressList(self.allocator, host, port);
+                    defer self.allocator.free(address_list);
                     if (address_list.len == 0) return error.UnknownHostName;
                     break :blk try std.net.tcpConnectToAddress(address_list[0]);
                 },
@@ -401,7 +402,7 @@ pub const Client = struct {
         if (event == null or event.? != .status) {
             return error.MissingStatus;
         }
-        const rawCode = try std.math.cast(u10, event.?.status.code);
+        const rawCode = std.math.cast(u10, event.?.status.code) orelse return error.StatusCodeTooLarge;
         const responseCode = @intToEnum(hzzp.StatusCode, rawCode);
 
         // read response headers
