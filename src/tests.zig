@@ -45,16 +45,16 @@ test "post some json data and get it back" {
         .bruh_status = "engaged",
         .maximum_bruh_enabled = true,
     };
-    var httpBinResponse = try zelda.postJsonAndParseResponse(HTTPBinResponse, "https://httpbin.org/post", source, .{
+    var http_bin_response = try zelda.postJsonAndParseResponse(HTTPBinResponse, "https://httpbin.org/post", source, .{
         .allocator = std.testing.allocator,
-        .parseOptions = .{ .ignore_unknown_fields = true },
+        .parse_options = .{ .ignore_unknown_fields = true },
     });
-    defer std.json.parseFree(HTTPBinResponse, httpBinResponse, .{
+    defer std.json.parseFree(HTTPBinResponse, http_bin_response, .{
         .allocator = std.testing.allocator,
         .ignore_unknown_fields = true,
     });
 
-    var token_stream = std.json.TokenStream.init(httpBinResponse.data);
+    var token_stream = std.json.TokenStream.init(http_bin_response.data);
     var obj = try std.json.parse(TestDataStruct, &token_stream, .{
         .allocator = std.testing.allocator,
         .ignore_unknown_fields = true,
