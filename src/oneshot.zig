@@ -42,8 +42,9 @@ pub fn postAndParseResponse(
     var response = try post(allocator, url, body);
     defer response.deinit(); // we can throw the response away because parse will copy into the structure
 
-    const responseBytes = response.body orelse return error.MissingResponseBody;
-    return std.json.parse(Type, &std.json.TokenStream.init(responseBytes), parseOptions);
+    const response_bytes = response.body orelse return error.MissingResponseBody;
+    var token_stream = std.json.TokenStream.init(response_bytes);
+    return std.json.parse(Type, &token_stream, parseOptions);
 }
 
 pub fn postJson(allocator: std.mem.Allocator, url: []const u8, jsonValue: anytype, stringifyOptions: std.json.StringifyOptions) !req.Response {
@@ -71,8 +72,9 @@ pub fn postJsonAndParseResponse(comptime OutputType: type, url: []const u8, json
     var response = try postJson(options.allocator, url, jsonValue, options.stringifyOptions);
     defer response.deinit();
 
-    const responseBytes = response.body orelse return error.MissingResponseBody;
-    return std.json.parse(OutputType, &std.json.TokenStream.init(responseBytes), parseOptionsWithAllocator(options.allocator, options.parseOptions));
+    const response_bytes = response.body orelse return error.MissingResponseBody;
+    var token_stream = std.json.TokenStream.init(response_bytes);
+    return std.json.parse(OutputType, &token_stream, parseOptionsWithAllocator(options.allocator, options.parseOptions));
 }
 
 /// Caller is responsible for freeing the returned type

@@ -54,7 +54,8 @@ test "post some json data and get it back" {
         .ignore_unknown_fields = true,
     });
 
-    var obj = try std.json.parse(TestDataStruct, &std.json.TokenStream.init(httpBinResponse.data), .{
+    var token_stream = std.json.TokenStream.init(httpBinResponse.data);
+    var obj = try std.json.parse(TestDataStruct, &token_stream, .{
         .allocator = std.testing.allocator,
         .ignore_unknown_fields = true,
     });

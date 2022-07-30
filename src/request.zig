@@ -27,7 +27,8 @@ pub const HeaderValue = struct {
         for (self.parts.items) |part|
             bytesNeeded += part.len;
         var buffer = try allocator.alloc(u8, bytesNeeded);
-        var writer = std.io.fixedBufferStream(buffer).writer();
+        var fixed_buffer_stream = std.io.fixedBufferStream(buffer);
+        var writer = fixed_buffer_stream.writer();
         for (self.parts.items) |part, idx| {
             writer.writeAll(part) catch unreachable;
             if (idx != self.parts.items.len - 1)
