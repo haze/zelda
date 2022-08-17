@@ -270,7 +270,7 @@ pub const Client = struct {
         tunnel_host_buf[tunnel_host.len] = '\x00';
 
         if (request.use_global_connection_pool) {
-            root.logger.info("Searching connection cache...", .{});
+            root.logger.debug("Searching connection cache...", .{});
             if (global_connection_cache.findSuitableConnection(StoredConnection.Criteria{
                 .allocator = self.allocator,
                 .host = .{ .provided = tunnel_host },
@@ -291,9 +291,9 @@ pub const Client = struct {
                     } },
                 };
                 global_connection_cache.removeFromCache(stored_connection_node);
-                root.logger.info("Found a connection to reuse! {}", .{stored_connection_node.data.criteria});
+                root.logger.debug("Found a connection to reuse! {}", .{stored_connection_node.data.criteria});
             } else {
-                root.logger.info("No reusable connection found", .{});
+                root.logger.debug("No reusable connection found", .{});
             }
         }
 
