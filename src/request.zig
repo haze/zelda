@@ -74,7 +74,7 @@ pub const Response = struct {
     headers: HeaderMap,
     body: ?[]u8 = null,
     allocator: std.mem.Allocator,
-    statusCode: hzzp.StatusCode,
+    status_code: hzzp.StatusCode,
 
     pub fn init(allocator: std.mem.Allocator, statusCode: hzzp.StatusCode) Self {
         return .{
