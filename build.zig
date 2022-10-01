@@ -43,7 +43,7 @@ pub fn build(b: *std.build.Builder) !void {
     create_test_step.setTarget(target);
     create_test_step.setBuildMode(mode);
     create_test_step.addPackage(pkgs.zelda);
-    try zig_libressl.useLibreSslForStep(b, create_test_step, "zig-libressl/libressl", use_system_libressl);
+    try zig_libressl.useLibreSslForStep(b, target, mode, "zig-libressl/libressl", create_test_step, use_system_libressl);
 
     if (maybe_test_filter) |test_filter| {
         create_test_step.setFilter(test_filter);

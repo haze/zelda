@@ -76,11 +76,11 @@ pub const Response = struct {
     allocator: std.mem.Allocator,
     status_code: hzzp.StatusCode,
 
-    pub fn init(allocator: std.mem.Allocator, statusCode: hzzp.StatusCode) Self {
+    pub fn init(allocator: std.mem.Allocator, status_code: hzzp.StatusCode) Self {
         return .{
             .headers = HeaderMap.init(allocator),
             .allocator = allocator,
-            .statusCode = statusCode,
+            .status_code = status_code,
         };
     }
 

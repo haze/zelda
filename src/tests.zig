@@ -7,7 +7,7 @@ test "fetch status code of ziglang.org" {
     var response = try zelda.get(std.testing.allocator, "https://ziglang.org");
     defer response.deinit();
 
-    try std.testing.expectEqual(@as(u10, 200), @enumToInt(response.statusCode));
+    try std.testing.expectEqual(@as(u10, 200), @enumToInt(response.status_code));
 }
 
 const HTTPBinResponse = struct {
