@@ -6,4 +6,4 @@
 	url = https://github.com/Vexu/zuri
 [submodule "zig-libressl"]
 	path = zig-libressl
-	url = git@github.com:haze/zig-libressl
+	url = https://github.com/haze/zig-libressl
