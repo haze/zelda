@@ -88,5 +88,7 @@ pub fn getAndParseResponse(
     defer response.deinit(); // we can throw the response away because parse will copy into the structure
 
     const response_body = response.body orelse return error.MissingResponseBody;
-    return std.json.parse(Type, &std.json.TokenStream.init(response_body), parse_options);
+    var json = std.json.TokenStream.init(response_body);
+
+    return std.json.parse(Type, &json, parse_options);
 }
