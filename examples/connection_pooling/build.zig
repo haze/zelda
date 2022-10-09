@@ -45,7 +45,7 @@ pub fn build(b: *std.build.Builder) !void {
     exe.setTarget(target);
     exe.setBuildMode(mode);
     exe.install();
-    try zig_libressl.useLibreSslForStep(b, exe, "libressl", use_system_libressl);
+    try zig_libressl.useLibreSslForStep(b, target, mode, "libressl", exe, use_system_libressl);
 
     const run_cmd = exe.run();
     run_cmd.step.dependOn(b.getInstallStep());
