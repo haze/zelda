@@ -4,8 +4,7 @@ const Pkg = std.build.Pkg;
 
 fn relativeToThis(comptime path: []const u8) []const u8 {
     comptime {
-        const fspath = std.fs.path;
-        return fspath.dirname(@src().file).? ++ fspath.sep_str ++ path;
+        return std.fs.path.dirname(@src().file).? ++ std.fs.path.sep_str ++ path;
     }
 }
 
@@ -60,7 +59,7 @@ pub fn build(b: *std.build.Builder) !void {
     create_test_step.sanitize_thread = sanitize_thread;
     create_test_step.setTarget(target);
     create_test_step.setBuildMode(mode);
-    try link(b, create_test_step, target, mode, use_system_libressl);
+    try link(b, create_test_step, target, .ReleaseFast, use_system_libressl);
 
     if (maybe_test_filter) |test_filter| {
         create_test_step.setFilter(test_filter);
